@@ -27,7 +27,7 @@ This is a simple graphical user interface (GUI) for the Windows Package Manager,
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](https://mit-license.org/) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Author
 
