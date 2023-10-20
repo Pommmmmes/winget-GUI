@@ -39,4 +39,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Enjoy using this simple `winget` GUI!
 
-![Winget GUI Screenshot](winget-ui.png)
+![Winget GUI Screenshot](Screenshots/winget-ui.png)
