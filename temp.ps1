@@ -1,5 +1,33 @@
-# Create a new PowerShell GUI window
 Add-Type -AssemblyName System.Windows.Forms
+
+# Function to search and list apps
+function SearchOrListApps {
+    param (
+        [string]$query,
+        [bool]$isInstalled = $false
+    )
+
+    try {
+        $results = if ($isInstalled) {
+            winget list $query
+        } else {
+            winget search $query
+        }
+
+        if ($results) {
+            $listBox.Items.Clear()
+            foreach ($result in $results | Select-Object -Skip 2) {
+                $listBox.Items.Add($result)
+            }
+        } else {
+            [System.Windows.Forms.MessageBox]::Show("No results found for '$query'", "No Results", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
+        }
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show("Error: $_", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
+    }
+}
+
+# Create a new PowerShell GUI window
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Winget GUI"
 $form.Width = 610
@@ -15,59 +43,30 @@ $searchButton = New-Object System.Windows.Forms.Button
 $searchButton.Location = New-Object System.Drawing.Point(380, 10)
 $searchButton.Text = "Search"
 $searchButton.add_Click({
-    # Search for the specified app and display the results in a list box
-    $searchButton.Text = "Loading"
     $searchText = $searchBox.Text.Trim()
     if ([string]::IsNullOrWhiteSpace($searchText)) {
         [System.Windows.Forms.MessageBox]::Show("Please enter a search term", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
-        $searchButton.Text = "Search"
         return
     }
-    try {
-        $results = winget search $searchText | Select-Object -Skip 2
-        if ($results) {
-            $listBox.Items.Clear()
-            foreach ($result in $results) {
-                $listBox.Items.Add($result)
-            }
-        } else {
-            [System.Windows.Forms.MessageBox]::Show("No results found for '$($searchText)'", "No Results", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
-        }
-    } catch {
-        Write-Host "Error: $_"
-        [System.Windows.Forms.MessageBox]::Show("Error: $_", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
-    }
+    $searchButton.Text = "Loading"
+    SearchOrListApps -query $searchText
     $searchButton.Text = "Search"
 })
 $form.Controls.Add($searchButton)
 
+# Add a "Search Installed" button
 $searchInstalledButton = New-Object System.Windows.Forms.Button
 $searchInstalledButton.Location = New-Object System.Drawing.Point(470, 10)
 $searchInstalledButton.Width = 120
 $searchInstalledButton.Text = "Search Installed"
 $searchInstalledButton.add_Click({
-    # Search for an installed app and display the results in a list box
-    $searchInstalledButton.Text = "Loading"
     $searchText = $searchBox.Text.Trim()
     if ([string]::IsNullOrWhiteSpace($searchText)) {
         [System.Windows.Forms.MessageBox]::Show("Please enter a search term", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
-        $searchInstalledButton.Text = "Search Installed"
         return
     }
-    try {
-        $results = winget list $searchText | Select-Object -Skip 2
-        if ($results) {
-            $listBox.Items.Clear()
-            foreach ($result in $results) {
-                $listBox.Items.Add($result)
-            }
-        } else {
-            [System.Windows.Forms.MessageBox]::Show("No results found for '$($searchText)'", "No Results", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
-        }
-    } catch {
-        Write-Host "Error: $_"
-        [System.Windows.Forms.MessageBox]::Show("Error: $_", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
-    }
+    $searchInstalledButton.Text = "Loading"
+    SearchOrListApps -query $searchText -isInstalled $true
     $searchInstalledButton.Text = "Search Installed"
 })
 $form.Controls.Add($searchInstalledButton)
@@ -84,14 +83,12 @@ $installButton = New-Object System.Windows.Forms.Button
 $installButton.Location = New-Object System.Drawing.Point(10, 260)
 $installButton.Text = "Install"
 $installButton.add_Click({
-    # Install the selected app
     $selected = $listBox.SelectedItem
     if ($selected) {
         $installButton.Text = "Loading"
         try {
             winget install $selected
         } catch {
-            Write-Host "Error: $_"
             [System.Windows.Forms.MessageBox]::Show("Error: $_", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
         }
         $installButton.Text = "Install"
@@ -99,32 +96,15 @@ $installButton.add_Click({
 })
 $form.Controls.Add($installButton)
 
-# Add a button to list all installed apps
+# Add a "List Installed" button
 $listInstalledButton = New-Object System.Windows.Forms.Button
 $listInstalledButton.Location = New-Object System.Drawing.Point(90, 260)
 $listInstalledButton.Width = 105
 $listInstalledButton.Text = "List Installed"
 $listInstalledButton.add_Click({
-    # List all installed apps and display the results in a list box
     $listInstalledButton.Text = "Loading"
     $searchText = $searchBox.Text.Trim()
-    if ([string]::IsNullOrWhiteSpace($searchText)) {
-        $searchText = ""
-    }
-    try {
-        $results = winget list $searchText | Select-Object -Skip 2
-        if ($results) {
-            $listBox.Items.Clear()
-            foreach ($result in $results) {
-                $listBox.Items.Add($result)
-            }
-        } else {
-            [System.Windows.Forms.MessageBox]::Show("No results found for '$($searchText)'", "No Results", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
-        }
-    } catch {
-        Write-Host "Error: $_"
-        [System.Windows.Forms.MessageBox]::Show("Error: $_", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
-    }
+    SearchOrListApps -query $searchText -isInstalled $true
     $listInstalledButton.Text = "List Installed"
 })
 $form.Controls.Add($listInstalledButton)
@@ -134,7 +114,6 @@ $uninstallButton = New-Object System.Windows.Forms.Button
 $uninstallButton.Location = New-Object System.Drawing.Point(330, 260)
 $uninstallButton.Text = "Uninstall"
 $uninstallButton.add_Click({
-    # Uninstall the selected installed app
     $selected = $listBox.SelectedItem
     if ($selected) {
         $uninstallButton.Text = "Loading"
@@ -146,15 +125,14 @@ $uninstallButton.add_Click({
                 [System.Windows.Forms.MessageBox]::Show("Error: $selected is not installed", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
             }
         } catch {
-            Write-Host "Error: $_"
             [System.Windows.Forms.MessageBox]::Show("Error: $_", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
         }
         $uninstallButton.Text = "Uninstall"
     }
 })
-$form.Controls.Add($uninstallButton)
+
+# Clear the list of search results on initialization
+$listBox.Items.Clear()
 
 # Show the form
 $form.ShowDialog() | Out-Null
-# Clear the list of search results before adding new results from a search or list operation.
-$listBox.Items.Clear()
